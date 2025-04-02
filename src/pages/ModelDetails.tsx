@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PredictionMetrics, ModelInfo, TrainingLog } from '@/types/database';
+import { PredictionMetrics, ModelInfo as ModelInfoType, TrainingLog } from '@/types/database';
 import { fetchModelDetails, fetchModelMetrics, fetchTrainingLogs } from '@/services/stockService';
-import ModelInfo from '@/components/ModelInfo';
+import ModelInfoComponent from '@/components/ModelInfo';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   ResponsiveContainer, BarChart, Bar 
@@ -13,7 +13,7 @@ import {
 const ModelDetails: React.FC = () => {
   const { toast } = useToast();
   const [metrics, setMetrics] = useState<PredictionMetrics[]>([]);
-  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
+  const [modelInfo, setModelInfo] = useState<ModelInfoType | null>(null);
   const [trainingLogs, setTrainingLogs] = useState<TrainingLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -93,7 +93,7 @@ const ModelDetails: React.FC = () => {
                 </CardContent>
               </Card>
             ) : modelInfo ? (
-              <ModelInfo 
+              <ModelInfoComponent 
                 algorithmType={modelInfo.algorithmType}
                 features={modelInfo.features}
                 hyperparameters={modelInfo.hyperparameters}
