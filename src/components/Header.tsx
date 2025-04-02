@@ -9,7 +9,6 @@ interface HeaderProps {
   previousClose: number;
   onRefresh: () => void;
   isLoading?: boolean;
-  showPriceInfo?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -18,11 +17,11 @@ export const Header: React.FC<HeaderProps> = ({
   previousClose, 
   onRefresh,
   isLoading = false,
-  showPriceInfo = true
 }) => {
   const priceChange = currentPrice - previousClose;
   const changePercent = (priceChange / previousClose) * 100;
   const isPositive = priceChange >= 0;
+  const showPriceInfo = currentPrice !== 0 || previousClose !== 0;
   
   return (
     <header className="bg-white shadow-sm border-b">
