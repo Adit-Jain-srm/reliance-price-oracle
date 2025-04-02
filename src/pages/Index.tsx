@@ -1,19 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import StockChart from '@/components/StockChart';
 import StockSummary from '@/components/StockSummary';
 import PricePrediction from '@/components/PricePrediction';
 import ModelMetrics from '@/components/ModelMetrics';
 import PredictionAccuracy from '@/components/PredictionAccuracy';
+import ModelInfo from '@/components/ModelInfo';
 import { 
   fetchStockData, 
   fetchLatestPrice, 
   fetchPrediction,
-  getHistoricalPredictions
+  getHistoricalPredictions,
+  fetchModelDetails
 } from '@/services/stockService';
-import { StockData } from '@/types/database';
+import { StockData, ModelInfo as ModelInfoType } from '@/types/database';
+import { DatabaseIcon, BarChart2Icon, TrendingUpIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index: React.FC = () => {
   const { toast } = useToast();
@@ -30,6 +35,7 @@ const Index: React.FC = () => {
     actual: number[];
     predicted: number[];
   } | null>(null);
+  const [modelInfo, setModelInfo] = useState<ModelInfoType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -50,6 +56,10 @@ const Index: React.FC = () => {
       // Fetch historical predictions
       const history = await getHistoricalPredictions();
       setPredictionHistory(history);
+      
+      // Fetch model info
+      const model = await fetchModelDetails();
+      setModelInfo(model);
       
       toast({
         title: "Data loaded successfully",
@@ -72,7 +82,7 @@ const Index: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Header 
         stockName="Reliance Industries Ltd."
         currentPrice={latestPrice?.close || 0}
@@ -81,7 +91,38 @@ const Index: React.FC = () => {
         isLoading={isLoading}
       />
       
-      <main className="container py-6 px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 py-6">
+        {/* Navigation Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Link to="/database">
+            <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-finance-primary hover:shadow-lg transition-shadow flex items-center gap-3">
+              <DatabaseIcon className="h-10 w-10 p-2 bg-finance-primary/10 rounded-lg text-finance-primary" />
+              <div>
+                <h3 className="font-medium">Database Explorer</h3>
+                <p className="text-sm text-muted-foreground">Browse and analyze stock data</p>
+              </div>
+            </div>
+          </Link>
+          
+          <Link to="/model">
+            <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-finance-secondary hover:shadow-lg transition-shadow flex items-center gap-3">
+              <BarChart2Icon className="h-10 w-10 p-2 bg-finance-secondary/10 rounded-lg text-finance-secondary" />
+              <div>
+                <h3 className="font-medium">Model Details</h3>
+                <p className="text-sm text-muted-foreground">ML model metrics and performance</p>
+              </div>
+            </div>
+          </Link>
+          
+          <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-finance-accent hover:shadow-lg transition-shadow flex items-center gap-3">
+            <TrendingUpIcon className="h-10 w-10 p-2 bg-finance-accent/10 rounded-lg text-finance-accent" />
+            <div>
+              <h3 className="font-medium">Market Dashboard</h3>
+              <p className="text-sm text-muted-foreground">Current view and predictions</p>
+            </div>
+          </div>
+        </div>
+      
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
@@ -112,17 +153,30 @@ const Index: React.FC = () => {
             <ModelMetrics 
               rmse={12.34}
               r2Score={0.78}
-              modelVersion="RandomForest v1.2"
-              trainDate="2023-03-15"
+              modelVersion="RandomForest v1.3"
+              trainDate="2024-01-10"
             />
+            
+            {modelInfo && (
+              <div className="pt-2">
+                <Button variant="outline" asChild className="w-full">
+                  <Link to="/model">View Model Details</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-      </main>
+      </div>
       
-      <footer className="bg-white border-t py-4 mt-10">
-        <div className="container text-center text-sm text-gray-500">
-          <p>Reliance Price Oracle - Machine Learning Prediction Model</p>
-          <p className="mt-1">Data is for demonstration purposes only. Not financial advice.</p>
+      <footer className="bg-white border-t py-6 mt-10">
+        <div className="container mx-auto px-4 text-center text-sm text-gray-500">
+          <p className="font-medium text-base mb-1">Reliance Price Oracle - Machine Learning Prediction Model</p>
+          <p className="mb-3">Data is for demonstration purposes only. Not financial advice.</p>
+          <div className="flex justify-center space-x-4">
+            <Link to="/" className="text-finance-primary hover:underline">Dashboard</Link>
+            <Link to="/database" className="text-finance-primary hover:underline">Database</Link>
+            <Link to="/model" className="text-finance-primary hover:underline">Model Info</Link>
+          </div>
         </div>
       </footer>
     </div>
