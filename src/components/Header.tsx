@@ -9,7 +9,6 @@ interface HeaderProps {
   previousClose: number;
   onRefresh: () => void;
   isLoading?: boolean;
-  showPriceInfo?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -17,8 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentPrice, 
   previousClose, 
   onRefresh,
-  isLoading = false,
-  showPriceInfo = true
+  isLoading = false
 }) => {
   const priceChange = currentPrice - previousClose;
   const changePercent = (priceChange / previousClose) * 100;
@@ -30,23 +28,21 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{stockName}</h1>
-            {showPriceInfo && (
-              <div className="flex items-center mt-1">
-                <span className="text-xl font-medium mr-2">
-                  ₹{currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
-                <div className={`flex items-center text-sm px-2 py-1 rounded-md ${
-                  isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                }`}>
-                  {isPositive ? (
-                    <ArrowUpIcon className="h-4 w-4 mr-1" />
-                  ) : (
-                    <ArrowDownIcon className="h-4 w-4 mr-1" />
-                  )}
-                  {Math.abs(changePercent).toFixed(2)}%
-                </div>
+            <div className="flex items-center mt-1">
+              <span className="text-xl font-medium mr-2">
+                ₹{currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+              <div className={`flex items-center text-sm px-2 py-1 rounded-md ${
+                isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
+                {isPositive ? (
+                  <ArrowUpIcon className="h-4 w-4 mr-1" />
+                ) : (
+                  <ArrowDownIcon className="h-4 w-4 mr-1" />
+                )}
+                {Math.abs(changePercent).toFixed(2)}%
               </div>
-            )}
+            </div>
           </div>
           
           <div className="flex items-center">

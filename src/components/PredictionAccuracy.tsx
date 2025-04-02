@@ -5,7 +5,6 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   ResponsiveContainer, Area, ComposedChart
 } from 'recharts';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface PredictionAccuracyProps {
   data: {
@@ -13,44 +12,9 @@ interface PredictionAccuracyProps {
     actual: number[];
     predicted: number[];
   };
-  isLoading?: boolean;
 }
 
-export const PredictionAccuracy: React.FC<PredictionAccuracyProps> = ({ data, isLoading = false }) => {
-  if (isLoading) {
-    return (
-      <Card className="w-full border-blue-200 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
-          <CardTitle className="text-blue-800">Prediction Accuracy</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="mb-6 p-4 bg-gray-100 rounded-lg">
-            <Skeleton className="h-6 w-3/4 mb-2" />
-            <Skeleton className="h-10 w-1/3" />
-          </div>
-          <div className="h-[400px] bg-gray-50 animate-pulse flex items-center justify-center">
-            <p className="text-gray-400">Loading chart data...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  if (!data || data.dates.length === 0) {
-    return (
-      <Card className="w-full border-blue-200 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
-          <CardTitle className="text-blue-800">Prediction Accuracy</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="h-[400px] flex items-center justify-center">
-            <p className="text-gray-500">No prediction data available</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-  
+export const PredictionAccuracy: React.FC<PredictionAccuracyProps> = ({ data }) => {
   // Transform the data into the format required by Recharts
   const chartData = data.dates.map((date, index) => ({
     date,
