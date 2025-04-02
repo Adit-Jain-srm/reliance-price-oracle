@@ -1,79 +1,10 @@
+import { StockData, PredictionMetrics, ModelInfo, TrainingLog, DatabaseStats, DatabaseQueryResult } from "@/types/database";
 
-import { StockData, PredictionMetrics, ModelInfo, TrainingLog, DatabaseStats } from "@/types/database";
+// For actual production, you would typically use a paid API or your own backend
+// Free public API options are limited in functionality and often rate-limited
+const API_BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/";
 
-// Sample data for development (will be replaced by actual DB connection)
-const generateMockData = (): StockData[] => {
-  const baseDate = new Date("2020-01-01");  // Starting from 2020 for more data
-  const data: StockData[] = [];
-  let previousClose = 2500;
-  
-  for (let i = 0; i < 1000; i++) {  // Increased to 1000 data points
-    const date = new Date(baseDate);
-    date.setDate(baseDate.getDate() + i);
-    
-    // Generate somewhat realistic stock price movements with more variability
-    const volatility = Math.sin(i / 30) * 10 + 20; // Cyclical volatility
-    const trendComponent = Math.sin(i / 180) * 200; // Long term trend cycles
-    const randomComponent = (Math.random() - 0.48) * volatility;
-    
-    const change = randomComponent + (i % 20 === 0 ? (Math.random() > 0.5 ? 50 : -50) : 0) + (i / 1000) * trendComponent;
-    const open = previousClose;
-    const close = open + change;
-    const high = Math.max(open, close) + Math.random() * volatility * 0.5;
-    const low = Math.min(open, close) - Math.random() * volatility * 0.5;
-    const volume = Math.floor(1000000 + Math.random() * 5000000 + (i % 5 === 0 ? 2000000 : 0));
-    
-    // Add seasonal patterns
-    const month = date.getMonth();
-    const seasonalAdjustment = month >= 9 || month <= 1 ? 20 : month >= 3 && month <= 5 ? -15 : 0;
-    
-    // Generate prediction data - more realistic model predictions (higher accuracy for recent data)
-    const daysFromEnd = 1000 - i;
-    const accuracyFactor = Math.min(0.95, Math.max(0.7, 1 - daysFromEnd / 2000));
-    const predictionError = (Math.random() - 0.5) * (30 * (1 - accuracyFactor));
-    const predictedClose = close * (1 + predictionError / 100) + seasonalAdjustment;
-    
-    const predictedDate = new Date(date);
-    predictedDate.setDate(date.getDate() + 1);
-    
-    // Calculate returns and accuracy
-    const actualReturn = i > 0 ? ((close - data[i-1].close) / data[i-1].close) * 100 : 0;
-    const predictedReturn = i > 0 ? ((predictedClose - data[i-1].close) / data[i-1].close) * 100 : 0;
-    const predictionAccuracy = 100 - Math.abs(predictedReturn - actualReturn);
-    
-    data.push({
-      id: i + 1,
-      date: date.toISOString().split('T')[0],
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(high.toFixed(2)),
-      low: parseFloat(low.toFixed(2)),
-      close: parseFloat(close.toFixed(2)),
-      volume,
-      symbol: "RELIANCE.NS",
-      predictedClose: parseFloat(predictedClose.toFixed(2)),
-      predictedDate: predictedDate.toISOString().split('T')[0],
-      actualReturn: parseFloat(actualReturn.toFixed(2)),
-      predictedReturn: parseFloat(predictedReturn.toFixed(2)),
-      predictionAccuracy: parseFloat(predictionAccuracy.toFixed(2))
-    });
-    
-    previousClose = close;
-  }
-  
-  return data;
-};
-
-// Generate extended mock data
-const mockStockData = generateMockData();
-
-// Database connection configuration (mock for now)
-const DB_CONFIG = {
-  connected: true,
-  type: 'mock', // 'mock', 'supabase', 'firebase'
-  lastSynced: new Date().toISOString()
-};
-
-// Extended model metrics data with cross-validation to prevent overfitting
+// Maintain existing model metrics until we integrate with a real ML API
 const mockModelMetrics: PredictionMetrics[] = [
   {
     id: 1,
@@ -161,7 +92,7 @@ const mockModelMetrics: PredictionMetrics[] = [
   },
 ];
 
-// Updated model info with anti-overfitting measures
+// Keep existing model info until we have a real ML model
 const mockModelInfo: ModelInfo = {
   id: 1,
   modelVersion: "Ensemble v1.1",
@@ -217,7 +148,7 @@ const mockModelInfo: ModelInfo = {
   validationStrategy: "Time-based 5-fold cross-validation with rolling windows"
 };
 
-// Extended training logs
+// Training logs - will be replaced by actual training logs in production
 const mockTrainingLogs: TrainingLog[] = [
   {
     id: 1,
@@ -304,17 +235,140 @@ const mockTrainingLogs: TrainingLog[] = [
   }
 ];
 
-// Enhanced database stats
+// Database connection configuration
+const DB_CONFIG = {
+  connected: true,
+  type: 'yahoo', // Using Yahoo Finance API
+  lastSynced: new Date().toISOString()
+};
+
+// Enhanced database stats - will be replaced by actual DB stats in production
 const mockDatabaseStats: DatabaseStats = {
-  totalRows: 3587,
-  stockDataCount: 3250,
-  predictionCount: 330,
+  totalRows: 0, // Will be updated after data fetch
+  stockDataCount: 0, // Will be updated after data fetch
+  predictionCount: 0,
   modelsCount: 7,
   lastUpdated: new Date().toISOString(),
-  databaseSize: "48.5 MB",
+  databaseSize: "Real-time API",
   databaseType: DB_CONFIG.type,
   connectionStatus: DB_CONFIG.connected ? "Connected" : "Disconnected",
   lastSyncTime: DB_CONFIG.lastSynced
+};
+
+// Cache for stock data to reduce API calls
+const stockDataCache: Record<string, {
+  data: StockData[],
+  timestamp: number,
+  symbol: string
+}> = {};
+
+// Cache expiration time in milliseconds (15 minutes)
+const CACHE_EXPIRATION = 15 * 60 * 1000;
+
+// Utility function to format date
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toISOString().split('T')[0];
+};
+
+// Fetch stock data from Yahoo Finance API
+const fetchStockDataFromAPI = async (symbol: string, range: string = "3mo", interval: string = "1d"): Promise<StockData[]> => {
+  try {
+    // Real API call to Yahoo Finance
+    const response = await fetch(`${API_BASE_URL}${symbol}?range=${range}&interval=${interval}`);
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+      throw new Error('No data returned from API');
+    }
+    
+    const result = data.chart.result[0];
+    const { timestamp, indicators } = result;
+    const quotes = indicators.quote[0];
+    
+    if (!timestamp || !quotes) {
+      throw new Error('Invalid data structure from API');
+    }
+    
+    // Transform data to our StockData format
+    const stockData: StockData[] = timestamp.map((time: number, index: number) => {
+      const date = formatDate(time * 1000); // Convert timestamp to ms and format
+      const open = quotes.open[index] || 0;
+      const high = quotes.high[index] || 0;
+      const low = quotes.low[index] || 0;
+      const close = quotes.close[index] || 0;
+      const volume = quotes.volume[index] || 0;
+      
+      return {
+        id: index + 1,
+        date,
+        open,
+        high,
+        low,
+        close,
+        volume,
+        symbol
+      };
+    }).filter((item: StockData) => 
+      // Filter out any entries with missing data
+      item.open && item.high && item.low && item.close && item.volume
+    );
+    
+    // Generate predictions
+    const predictedData = generatePredictions(stockData);
+    
+    // Update database stats
+    mockDatabaseStats.totalRows = predictedData.length;
+    mockDatabaseStats.stockDataCount = predictedData.length;
+    mockDatabaseStats.lastUpdated = new Date().toISOString();
+    
+    return predictedData;
+  } catch (error) {
+    console.error('Error fetching stock data from API:', error);
+    throw error;
+  }
+};
+
+// Generate predictions based on actual data
+// In a real app, this would be a call to your ML model API
+const generatePredictions = (stockData: StockData[]): StockData[] => {
+  return stockData.map((item, index) => {
+    if (index === 0) return item;
+    
+    // Use simple moving average for demonstration
+    // In production, this would be replaced by actual ML predictions
+    const predictedClose = calculateSimpleMovingAverage(
+      stockData.slice(Math.max(0, index - 5), index).map(d => d.close)
+    );
+    
+    const actualReturn = ((item.close - stockData[index - 1].close) / stockData[index - 1].close) * 100;
+    const predictedReturn = ((predictedClose - stockData[index - 1].close) / stockData[index - 1].close) * 100;
+    const predictionAccuracy = 100 - Math.abs(predictedReturn - actualReturn);
+    
+    const nextDay = new Date(item.date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    
+    return {
+      ...item,
+      predictedClose,
+      predictedDate: nextDay.toISOString().split('T')[0],
+      actualReturn,
+      predictedReturn,
+      predictionAccuracy
+    };
+  });
+};
+
+// Calculate simple moving average
+const calculateSimpleMovingAverage = (prices: number[]): number => {
+  if (prices.length === 0) return 0;
+  const sum = prices.reduce((acc, price) => acc + price, 0);
+  return parseFloat((sum / prices.length).toFixed(2));
 };
 
 // API functions
@@ -324,58 +378,74 @@ export const getDatabaseConfig = async (): Promise<{
   type: string;
   lastSynced: string;
 }> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(DB_CONFIG);
-    }, 300);
-  });
+  return Promise.resolve(DB_CONFIG);
 };
 
 export const connectToDatabase = async (type: string): Promise<boolean> => {
-  // In a real app, this would connect to an actual database
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      DB_CONFIG.type = type;
-      DB_CONFIG.connected = true;
-      DB_CONFIG.lastSynced = new Date().toISOString();
-      resolve(true);
-    }, 1500);
-  });
+  DB_CONFIG.type = type;
+  DB_CONFIG.connected = true;
+  DB_CONFIG.lastSynced = new Date().toISOString();
+  return Promise.resolve(true);
 };
 
 export const disconnectFromDatabase = async (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      DB_CONFIG.connected = false;
-      resolve(true);
-    }, 800);
-  });
+  DB_CONFIG.connected = false;
+  return Promise.resolve(true);
 };
 
-export const fetchStockData = async (symbol: string, days: number = 30): Promise<StockData[]> => {
-  // In a real app, this would fetch from the connected database
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockStockData.slice(-days));
-    }, 500);
-  });
+export const fetchStockData = async (symbol: string, days: number = 90): Promise<StockData[]> => {
+  try {
+    // Check if we have valid cached data
+    const cacheKey = `${symbol}_${days}`;
+    const cachedData = stockDataCache[cacheKey];
+    const now = Date.now();
+    
+    if (cachedData && now - cachedData.timestamp < CACHE_EXPIRATION) {
+      console.log('Using cached stock data');
+      return cachedData.data.slice(-days);
+    }
+    
+    // Determine appropriate range based on days
+    let range = "3mo"; // Default to 3 months
+    if (days > 90) range = "6mo";
+    if (days > 180) range = "1y";
+    if (days > 365) range = "2y";
+    if (days > 730) range = "5y";
+    
+    // Fetch fresh data
+    const data = await fetchStockDataFromAPI(symbol, range);
+    
+    // Cache the data
+    stockDataCache[cacheKey] = {
+      data,
+      timestamp: now,
+      symbol
+    };
+    
+    return data.slice(-days);
+  } catch (error) {
+    console.error('Error fetching stock data:', error);
+    throw error;
+  }
 };
 
 export const fetchAllStockData = async (symbol: string): Promise<StockData[]> => {
-  // In a real app, this would fetch all data from the connected database
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockStockData);
-    }, 800);
-  });
+  try {
+    return await fetchStockData(symbol, 1000); // Get as much data as possible
+  } catch (error) {
+    console.error('Error fetching all stock data:', error);
+    throw error;
+  }
 };
 
 export const fetchLatestPrice = async (symbol: string): Promise<StockData> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockStockData[mockStockData.length - 1]);
-    }, 300);
-  });
+  try {
+    const data = await fetchStockData(symbol, 1);
+    return data[data.length - 1];
+  } catch (error) {
+    console.error('Error fetching latest price:', error);
+    throw error;
+  }
 };
 
 export const fetchPrediction = async (symbol: string): Promise<{
@@ -384,104 +454,114 @@ export const fetchPrediction = async (symbol: string): Promise<{
   predictedChange: number;
   predictedDate: string;
 }> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const latestData = mockStockData[mockStockData.length - 1];
-      const predictedPrice = latestData.close * (1 + (Math.random() * 0.04 - 0.02));
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      resolve({
-        currentPrice: latestData.close,
-        predictedPrice: parseFloat(predictedPrice.toFixed(2)),
-        predictedChange: parseFloat(((predictedPrice - latestData.close) / latestData.close * 100).toFixed(2)),
-        predictedDate: tomorrow.toISOString().split('T')[0]
-      });
-    }, 800);
-  });
+  try {
+    const data = await fetchStockData(symbol, 10);
+    const latestData = data[data.length - 1];
+    
+    // Calculate prediction using simple model
+    // In production, this would call your ML API
+    const prices = data.map(d => d.close);
+    const predictedPrice = calculateSimpleMovingAverage(prices) * (1 + (Math.random() * 0.04 - 0.02));
+    
+    const tomorrow = new Date(latestData.date);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    return {
+      currentPrice: latestData.close,
+      predictedPrice: parseFloat(predictedPrice.toFixed(2)),
+      predictedChange: parseFloat(((predictedPrice - latestData.close) / latestData.close * 100).toFixed(2)),
+      predictedDate: tomorrow.toISOString().split('T')[0]
+    };
+  } catch (error) {
+    console.error('Error generating prediction:', error);
+    throw error;
+  }
 };
 
-export const getHistoricalPredictions = async (): Promise<{
+export const getHistoricalPredictions = async (symbol: string = "RELIANCE.NS"): Promise<{
   dates: string[];
   actual: number[];
   predicted: number[];
 }> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const dates = mockStockData.slice(-60).map(d => d.date);
-      const actual = mockStockData.slice(-60).map(d => d.close);
-      const predicted = mockStockData.slice(-60).map(d => d.predictedClose || 0);
-      
-      resolve({ dates, actual, predicted });
-    }, 600);
-  });
+  try {
+    // Get data with predictions
+    const data = await fetchStockData(symbol, 60);
+    
+    // Filter out entries without predictions
+    const validData = data.filter(d => d.predictedClose !== undefined);
+    
+    return {
+      dates: validData.map(d => d.date),
+      actual: validData.map(d => d.close),
+      predicted: validData.map(d => d.predictedClose || 0)
+    };
+  } catch (error) {
+    console.error('Error fetching historical predictions:', error);
+    throw error;
+  }
 };
 
 export const fetchModelMetrics = async (): Promise<PredictionMetrics[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockModelMetrics);
-    }, 700);
-  });
+  // In a real app, this would fetch from your ML service
+  return Promise.resolve(mockModelMetrics);
 };
 
 export const fetchModelDetails = async (): Promise<ModelInfo> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockModelInfo);
-    }, 500);
-  });
+  // In a real app, this would fetch from your ML service
+  return Promise.resolve(mockModelInfo);
 };
 
 export const fetchTrainingLogs = async (): Promise<TrainingLog[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockTrainingLogs);
-    }, 600);
-  });
+  // In a real app, this would fetch from your ML service
+  return Promise.resolve(mockTrainingLogs);
 };
 
 export const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        ...mockDatabaseStats,
-        lastUpdated: new Date().toISOString() // Update with current time
-      });
-    }, 400);
+  return Promise.resolve({
+    ...mockDatabaseStats,
+    lastUpdated: new Date().toISOString() // Update with current time
   });
 };
 
-// New functions for database interaction
+// Database interaction functions
 
-export const runCustomQuery = async (query: string): Promise<any> => {
-  // In a real app, this would execute a custom SQL query
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (query.toLowerCase().includes("select") && !query.toLowerCase().includes("drop")) {
-        const sampleResults = mockStockData.slice(0, 5);
-        resolve({
-          status: "success",
-          results: sampleResults,
-          rowCount: 5
-        });
-      } else {
-        reject({
-          status: "error",
-          message: "Only SELECT queries are allowed in demo mode"
-        });
-      }
-    }, 1000);
-  });
+export const runCustomQuery = async (query: string): Promise<DatabaseQueryResult> => {
+  // In a real app, this would execute against your database
+  if (query.toLowerCase().includes("select") && !query.toLowerCase().includes("drop")) {
+    try {
+      const symbol = "RELIANCE.NS";
+      const data = await fetchStockData(symbol, 5);
+      
+      return {
+        status: "success",
+        results: data,
+        rowCount: data.length
+      };
+    } catch (error) {
+      return {
+        status: "error",
+        message: `Error executing query: ${error}`
+      };
+    }
+  } else {
+    return {
+      status: "error",
+      message: "Only SELECT queries are allowed"
+    };
+  }
 };
 
 export const syncDatabaseWithAPI = async (): Promise<boolean> => {
-  // In a real app, this would sync the database with external API data
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      DB_CONFIG.lastSynced = new Date().toISOString();
-      resolve(true);
-    }, 2000);
-  });
+  try {
+    // Clear cache to force refresh on next fetch
+    Object.keys(stockDataCache).forEach(key => {
+      delete stockDataCache[key];
+    });
+    
+    DB_CONFIG.lastSynced = new Date().toISOString();
+    return true;
+  } catch (error) {
+    console.error('Error syncing database with API:', error);
+    throw error;
+  }
 };
-

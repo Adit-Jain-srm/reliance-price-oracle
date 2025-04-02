@@ -75,7 +75,7 @@ export interface DatabaseQueryResult {
 export interface DatabaseConnection {
   id: string;
   name: string;
-  type: 'supabase' | 'firebase' | 'mysql' | 'postgresql' | 'mongodb' | 'mock';
+  type: 'supabase' | 'firebase' | 'mysql' | 'postgresql' | 'mongodb' | 'alphavantage' | 'yahoo';
   connectionString: string;
   isConnected: boolean;
   lastConnected: string;
