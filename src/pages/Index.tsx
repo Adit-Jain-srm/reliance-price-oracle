@@ -37,26 +37,24 @@ const Index: React.FC = () => {
   } | null>(null);
   const [modelInfo, setModelInfo] = useState<ModelInfoType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // Default to IBM as it's available in the Alpha Vantage demo API
-  const [stockSymbol, setStockSymbol] = useState("IBM"); 
 
   const loadData = async () => {
     setIsLoading(true);
     try {
       // Fetch stock data
-      const data = await fetchStockData(stockSymbol, 100);
+      const data = await fetchStockData('RELIANCE.NS', 365);
       setStockData(data);
       
       // Fetch latest price
-      const latest = await fetchLatestPrice(stockSymbol);
+      const latest = await fetchLatestPrice('RELIANCE.NS');
       setLatestPrice(latest);
       
       // Fetch prediction
-      const pred = await fetchPrediction(stockSymbol);
+      const pred = await fetchPrediction('RELIANCE.NS');
       setPrediction(pred);
       
       // Fetch historical predictions
-      const history = await getHistoricalPredictions(stockSymbol);
+      const history = await getHistoricalPredictions();
       setPredictionHistory(history);
       
       // Fetch model info
@@ -81,12 +79,12 @@ const Index: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [stockSymbol]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Header 
-        stockName={`${stockSymbol} - Stock Analysis`}
+        stockName="Reliance Industries Ltd."
         currentPrice={latestPrice?.close || 0}
         previousClose={latestPrice?.open || 0}
         onRefresh={loadData}
@@ -130,7 +128,7 @@ const Index: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             <StockChart 
               data={stockData} 
-              title={`${stockSymbol} Stock Price`} 
+              title="Reliance Stock Price (RELIANCE.NS)" 
             />
             
             {predictionHistory && (
@@ -172,7 +170,7 @@ const Index: React.FC = () => {
       
       <footer className="bg-white border-t py-6 mt-10">
         <div className="container mx-auto px-4 text-center text-sm text-gray-500">
-          <p className="font-medium text-base mb-1">Stock Price Oracle - Machine Learning Prediction Model</p>
+          <p className="font-medium text-base mb-1">Reliance Price Oracle - Machine Learning Prediction Model</p>
           <p className="mb-3">Data is for demonstration purposes only. Not financial advice.</p>
           <div className="flex justify-center space-x-4">
             <Link to="/" className="text-finance-primary hover:underline">Dashboard</Link>

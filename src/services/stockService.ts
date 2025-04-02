@@ -1,9 +1,8 @@
 import { StockData, PredictionMetrics, ModelInfo, TrainingLog, DatabaseStats, DatabaseQueryResult } from "@/types/database";
 
-// Using Alpha Vantage API for real-time stock data
-// Free API key for demo purposes (limited to 5 requests per minute, 500 per day)
-const API_KEY = "demo"; // Use "demo" for testing, replace with your API key for production
-const ALPHA_VANTAGE_API = "https://www.alphavantage.co/query";
+// For actual production, you would typically use a paid API or your own backend
+// Free public API options are limited in functionality and often rate-limited
+const API_BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/";
 
 // Maintain existing model metrics until we integrate with a real ML API
 const mockModelMetrics: PredictionMetrics[] = [
@@ -239,11 +238,11 @@ const mockTrainingLogs: TrainingLog[] = [
 // Database connection configuration
 const DB_CONFIG = {
   connected: true,
-  type: 'alphavantage', // Using Alpha Vantage API
+  type: 'yahoo', // Using Yahoo Finance API
   lastSynced: new Date().toISOString()
 };
 
-// Enhanced database stats - will be updated with real data counts
+// Enhanced database stats - will be replaced by actual DB stats in production
 const mockDatabaseStats: DatabaseStats = {
   totalRows: 0, // Will be updated after data fetch
   stockDataCount: 0, // Will be updated after data fetch
@@ -266,22 +265,17 @@ const stockDataCache: Record<string, {
 // Cache expiration time in milliseconds (15 minutes)
 const CACHE_EXPIRATION = 15 * 60 * 1000;
 
-// Fetch stock data from Alpha Vantage API
-const fetchStockDataFromAPI = async (symbol: string, outputSize: string = "compact"): Promise<StockData[]> => {
-  try {
-    // Set up query parameters for Alpha Vantage API
-    const params = new URLSearchParams({
-      function: "TIME_SERIES_DAILY",
-      symbol,
-      outputsize: outputSize, // 'compact' returns the latest 100 data points, 'full' returns up to 20 years
-      apikey: API_KEY
-    });
+// Utility function to format date
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toISOString().split('T')[0];
+};
 
-    // Log the request URL for debugging
-    console.log(`Fetching data from: ${ALPHA_VANTAGE_API}?${params.toString()}`);
-    
-    // Make the API request
-    const response = await fetch(`${ALPHA_VANTAGE_API}?${params.toString()}`);
+// Fetch stock data from Yahoo Finance API
+const fetchStockDataFromAPI = async (symbol: string, range: string = "3mo", interval: string = "1d"): Promise<StockData[]> => {
+  try {
+    // Real API call to Yahoo Finance
+    const response = await fetch(`${API_BASE_URL}${symbol}?range=${range}&interval=${interval}`);
     
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
@@ -289,33 +283,41 @@ const fetchStockDataFromAPI = async (symbol: string, outputSize: string = "compa
     
     const data = await response.json();
     
-    // Check for API error responses
-    if (data['Error Message']) {
-      throw new Error(data['Error Message']);
+    if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+      throw new Error('No data returned from API');
     }
     
-    if (data['Note']) {
-      console.warn('Alpha Vantage API limit note:', data['Note']);
+    const result = data.chart.result[0];
+    const { timestamp, indicators } = result;
+    const quotes = indicators.quote[0];
+    
+    if (!timestamp || !quotes) {
+      throw new Error('Invalid data structure from API');
     }
     
-    if (!data['Time Series (Daily)']) {
-      throw new Error('No daily time series data returned from API');
-    }
-    
-    // Transform Alpha Vantage data format to our StockData format
-    const timeSeriesData = data['Time Series (Daily)'];
-    const stockData: StockData[] = Object.entries(timeSeriesData).map(([date, values]: [string, any], index) => {
+    // Transform data to our StockData format
+    const stockData: StockData[] = timestamp.map((time: number, index: number) => {
+      const date = formatDate(time * 1000); // Convert timestamp to ms and format
+      const open = quotes.open[index] || 0;
+      const high = quotes.high[index] || 0;
+      const low = quotes.low[index] || 0;
+      const close = quotes.close[index] || 0;
+      const volume = quotes.volume[index] || 0;
+      
       return {
         id: index + 1,
         date,
-        open: parseFloat(values['1. open']),
-        high: parseFloat(values['2. high']),
-        low: parseFloat(values['3. low']),
-        close: parseFloat(values['4. close']),
-        volume: parseInt(values['5. volume'], 10),
+        open,
+        high,
+        low,
+        close,
+        volume,
         symbol
       };
-    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Sort by date ascending
+    }).filter((item: StockData) => 
+      // Filter out any entries with missing data
+      item.open && item.high && item.low && item.close && item.volume
+    );
     
     // Generate predictions
     const predictedData = generatePredictions(stockData);
@@ -403,15 +405,15 @@ export const fetchStockData = async (symbol: string, days: number = 90): Promise
       return cachedData.data.slice(-days);
     }
     
-    // Determine appropriate outputsize based on days
-    let outputSize = "compact"; // Default to compact (100 data points)
-    if (days > 100) outputSize = "full"; // Switch to full for more data
-    
-    // Convert Indian symbol format if needed
-    const apiSymbol = symbol.replace('.NS', '');
+    // Determine appropriate range based on days
+    let range = "3mo"; // Default to 3 months
+    if (days > 90) range = "6mo";
+    if (days > 180) range = "1y";
+    if (days > 365) range = "2y";
+    if (days > 730) range = "5y";
     
     // Fetch fresh data
-    const data = await fetchStockDataFromAPI(apiSymbol, outputSize);
+    const data = await fetchStockDataFromAPI(symbol, range);
     
     // Cache the data
     stockDataCache[cacheKey] = {
