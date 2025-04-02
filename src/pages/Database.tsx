@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
@@ -16,7 +15,6 @@ import {
   runCustomQuery
 } from '@/services/stockService';
 import { 
-  Database, 
   Server, 
   RefreshCw, 
   AlertTriangle, 
@@ -38,7 +36,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
-const Database: React.FC = () => {
+const DatabasePage: React.FC = () => {
   const { toast } = useToast();
   const [stockData, setStockData] = useState<StockData[]>([]);
   const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -185,7 +183,6 @@ const Database: React.FC = () => {
         previousClose={0}
         onRefresh={loadData}
         isLoading={isLoading}
-        showPriceInfo={false}
       />
       
       <div className="container mx-auto px-4 py-6">
@@ -231,7 +228,7 @@ const Database: React.FC = () => {
                   <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Database className="text-blue-700" />
+                        <DatabaseIcon className="text-blue-700" />
                         <div>
                           <h3 className="font-medium">Connection Status</h3>
                           <p className="text-sm text-gray-600">
@@ -412,7 +409,7 @@ const Database: React.FC = () => {
                     <div className="p-5 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200 shadow-sm">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-indigo-800 font-medium">Database Status</h3>
-                        <Database className="text-indigo-700" />
+                        <DatabaseIcon className="text-indigo-700" />
                       </div>
                       <div className="space-y-3">
                         <div className="flex justify-between">
@@ -579,4 +576,4 @@ const Database: React.FC = () => {
   );
 };
 
-export default Database;
+export default DatabasePage;
