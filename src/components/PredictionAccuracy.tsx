@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer 
+  ResponsiveContainer, Area, ComposedChart
 } from 'recharts';
 
 interface PredictionAccuracyProps {
@@ -28,30 +28,42 @@ export const PredictionAccuracy: React.FC<PredictionAccuracyProps> = ({ data }) 
   const averageErrorPercent = chartData.reduce((sum, item) => sum + item.errorPercent, 0) / chartData.length;
   
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-lg">Prediction Accuracy</CardTitle>
+    <Card className="w-full border-blue-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
+        <CardTitle className="text-blue-800">Prediction Accuracy</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="mb-4 text-sm">
-          <div className="flex justify-between">
-            <span>Average prediction error:</span>
-            <span className="font-medium">{averageErrorPercent.toFixed(2)}%</span>
+      <CardContent className="p-4">
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-inner">
+          <div className="flex justify-between items-center">
+            <span className="text-blue-800 font-medium">Average prediction error:</span>
+            <span className={`font-bold text-lg ${averageErrorPercent < 5 ? 'text-green-600' : averageErrorPercent < 10 ? 'text-amber-600' : 'text-red-600'}`}>
+              {averageErrorPercent.toFixed(2)}%
+            </span>
           </div>
         </div>
         
-        <div className="h-[350px]">
+        <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart
+            <ComposedChart
               data={chartData}
               margin={{
-                top: 5,
+                top: 20,
                 right: 30,
                 left: 20,
                 bottom: 30,
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+              <defs>
+                <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                </linearGradient>
+                <linearGradient id="predictedGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.2}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ccc" opacity={0.3} />
               <XAxis 
                 dataKey="date" 
                 minTickGap={30}
@@ -60,9 +72,11 @@ export const PredictionAccuracy: React.FC<PredictionAccuracyProps> = ({ data }) 
                   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 }}
                 dy={10}
+                tick={{fill: '#333'}}
               />
               <YAxis 
                 tickFormatter={(tick) => `₹${tick.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                tick={{fill: '#333'}}
               />
               <Tooltip 
                 formatter={(value: number) => [`₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 
@@ -79,26 +93,30 @@ export const PredictionAccuracy: React.FC<PredictionAccuracyProps> = ({ data }) 
                     day: 'numeric' 
                   });
                 }}
+                contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}
               />
-              <Legend />
-              <Line 
+              <Legend 
+                wrapperStyle={{paddingTop: '10px'}}
+                formatter={(value) => <span className="text-sm font-medium">{value}</span>}
+              />
+              <Area
                 type="monotone" 
                 dataKey="actual" 
-                stroke="#0047AB" 
+                stroke="#3b82f6" 
+                fill="url(#actualGradient)"
                 name="Actual Price" 
-                dot={{ r: 1 }}
                 strokeWidth={2}
+                dot={{ fill: '#3b82f6', r: 3 }}
               />
               <Line 
                 type="monotone" 
                 dataKey="predicted" 
-                stroke="#FF8C00" 
+                stroke="#7c3aed" 
                 name="Predicted Price" 
-                dot={{ r: 1 }}
                 strokeWidth={2}
-                strokeDasharray="5 5"
+                dot={{ fill: '#7c3aed', r: 3 }}
               />
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

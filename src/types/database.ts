@@ -39,6 +39,7 @@ export interface ModelInfo {
   featureImportance?: Record<string, number>; // Feature importance scores
   dataStartDate?: string; // Start date of training data
   dataEndDate?: string; // End date of training data
+  validationStrategy?: string; // Cross-validation strategy used to prevent overfitting
 }
 
 export interface TrainingLog {
@@ -59,4 +60,23 @@ export interface DatabaseStats {
   modelsCount: number;
   lastUpdated: string;
   databaseSize: string; // Size of the database in MB/GB
+  databaseType?: string; // Type of database (MySQL, PostgreSQL, etc.)
+  connectionStatus?: string; // Connected, Disconnected
+  lastSyncTime?: string; // When the database was last synced with external APIs
+}
+
+export interface DatabaseQueryResult {
+  status: 'success' | 'error';
+  results?: any[];
+  rowCount?: number;
+  message?: string;
+}
+
+export interface DatabaseConnection {
+  id: string;
+  name: string;
+  type: 'supabase' | 'firebase' | 'mysql' | 'postgresql' | 'mongodb' | 'mock';
+  connectionString: string;
+  isConnected: boolean;
+  lastConnected: string;
 }
